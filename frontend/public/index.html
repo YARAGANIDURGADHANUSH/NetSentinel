@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSentinel // Unified Security Analytics Terminal</title>
+    <link rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH2wQCEx0SB3IOBwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLm0LDQAAADpJREFUeNpiYGBgYmBgYmBhYWMgA6AAMgAzgADIAEwAzgDCAAMwAzgDCAMwA3gDCAMMIPwPBAAA//8DAP//9gcCbyv9xXgAAAAASUVORK5CYII=">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-mono min-h-screen flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div id="status-pulse" class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></div>
+            <h1 class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">
+                NETSENTINEL <span class="text-xs font-mono font-normal text-slate-500 px-1 border border-slate-800 rounded">v1.0.0</span>
+            </h1>
+        </div>
+        <div class="flex items-center space-x-6 text-xs text-slate-400">
+            <div>HOST IP: <span class="text-slate-200">127.0.0.1</span></div>
+            <div>WS STREAM: <span id="ws-status" class="text-amber-400 font-bold">CONNECTING...</span></div>
+        </div>
+    </header>
+
+    <main class="flex-1 p-6 grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-[1800px] mx-auto w-full">
+        
+        <div class="xl:col-span-1 flex flex-col space-y-6">
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-xl backdrop-blur">
+                    <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total Packets</div>
+                    <div id="metric-total" class="text-3xl font-black text-cyan-400">0</div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-xl backdrop-blur">
+                    <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">HTTP Intercepts</div>
+                    <div id="metric-http" class="text-3xl font-black text-emerald-400">0</div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-xl backdrop-blur">
+                    <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">DNS Resolves</div>
+                    <div id="metric-dns" class="text-3xl font-black text-purple-400">0</div>
+                </div>
+                <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-xl backdrop-blur">
+                    <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">RAW / L4 Frames</div>
+                    <div id="metric-raw" class="text-3xl font-black text-red-400">0</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-red-950/40 p-5 rounded-xl backdrop-blur flex flex-col h-[220px]">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-red-400 border-b border-red-950/60 pb-3 mb-3 flex items-center justify-between">
+                    <span>⚠️ Security Threat Alerts</span>
+                    <span id="alert-badge-count" class="bg-red-950 text-red-400 border border-red-800/60 px-2 py-0.5 rounded text-[10px] font-bold">0 ACTIVE</span>
+                </h3>
+                <div id="alerts-log-box" class="flex-1 overflow-y-auto space-y-2 pr-1 text-[11px] text-slate-400 custom-scrollbar">
+                    <div class="text-slate-600 italic">Unsupervised isolation forest model parsing frame vectors...</div>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800/80 p-5 rounded-xl backdrop-blur flex-1 flex flex-col min-h-[350px]">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300 border-b border-slate-800 pb-3 mb-2 flex items-center justify-between">
+                    <span>🌐 Live Infrastructure Topology Map</span>
+                    <span class="text-[10px] font-mono text-slate-500">REALTIME TARGETING</span>
+                </h3>
+                <div id="topology-canvas-container" class="flex-1 w-full relative min-h-[280px] bg-slate-950/40 rounded-lg overflow-hidden border border-slate-900">
+                    </div>
+            </div>
+        </div>
+
+        <div class="xl:col-span-2 flex flex-col bg-slate-900/60 border border-slate-800/80 rounded-xl backdrop-blur overflow-hidden h-[calc(100vh-140px)] min-h-[500px]">
+            <div class="px-5 py-4 border-b border-slate-800/80 bg-slate-900/30 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-2">
+                    <div id="stream-ping-indicator" class="w-2 h-2 bg-slate-500 rounded-full"></div>
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300">Live Pipeline Packet Triage Feed</h3>
+                </div>
+
+                <div class="flex items-center space-x-2 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                    <button onclick="setFilter('ALL')" id="filter-ALL" class="px-3 py-1 rounded font-bold cursor-pointer transition bg-cyan-500 text-slate-950">ALL</button>
+                    <button onclick="setFilter('HTTP')" id="filter-HTTP" class="px-3 py-1 rounded font-bold cursor-pointer transition text-slate-400 hover:text-slate-200">HTTP</button>
+                    <button onclick="setFilter('DNS')" id="filter-DNS" class="px-3 py-1 rounded font-bold cursor-pointer transition text-slate-400 hover:text-slate-200">DNS</button>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="exportSessionLogToCSV()" class="text-xs bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 px-3 py-1 rounded transition border border-cyan-800/50 cursor-pointer font-bold">
+                        ⬇️ Export Session Log
+                    </button>
+                    <button onclick="clearConsole()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-400 px-3 py-1 rounded transition border border-slate-700/50 cursor-pointer">
+                        Clear Console
+                    </button>
+                </div>
+            </div>
+
+            <div id="terminal" class="flex-1 p-5 overflow-y-auto space-y-3 text-xs leading-relaxed bg-slate-950/40 custom-scrollbar select-text">
+                <div class="text-slate-500 italic">[Waiting for internal frame stream data mappings...]</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Resolve target environment coordinates dynamically
+        const TARGET_HOST = window.location.hostname || "localhost";
+        const WS_URL = `ws://${TARGET_HOST}:8000/api/packets/stream`;
+
+        let totalCount = 0, dnsCount = 0, httpCount = 0, anomalyCount = 0;
+        let ws;
+        let currentFilter = "ALL";
+        let capturedSessionFramesArray = [];
+
+        // Structural D3 Graph Map Definition
+        let svg, linkSelection, nodeSelection, simulation;
+        const topologyData = {
+            nodes: [
+                { id: "Gateway", type: "router", label: "Core Gateway (10.0.0.1)" },
+                { id: "Server-Alpha", type: "server", label: "App Node A (10.0.0.12)" },
+                { id: "Server-Beta", type: "server", label: "DB Cluster B (192.168.1.50)" },
+                { id: "External-DNS", type: "external", label: "Ext Router (8.8.8.8)" }
+            ],
+            links: [
+                { source: "Gateway", target: "Server-Alpha" },
+                { source: "Gateway", target: "Server-Beta" },
+                { source: "Gateway", target: "External-DNS" }
+            ]
+        };
+
+        function initTopologyGraph() {
+            const container = document.getElementById("topology-canvas-container");
+            const width = container.clientWidth || 400;
+            const height = container.clientHeight || 280;
+
+            svg = d3.select("#topology-canvas-container")
+                .append("svg")
+                .attr("width", "100%")
+                .attr("height", "100%")
+                .attr("viewBox", `0 0 ${width} ${height}`);
+
+            linkSelection = svg.append("g")
+                .selectAll("line")
+                .data(topologyData.links)
+                .enter().append("line")
+                .attr("stroke", "#334155")
+                .attr("stroke-width", 1.5);
+
+            nodeSelection = svg.append("g")
+                .selectAll("g")
+                .data(topologyData.nodes)
+                .enter().append("g")
+                .attr("id", d => `node-${d.id}`);
+
+            nodeSelection.append("circle")
+                .attr("r", 12)
+                .attr("fill", d => d.type === "router" ? "#06b6d4" : (d.type === "server" ? "#10b981" : "#64748b"))
+                .attr("stroke", "#020617")
+                .attr("stroke-width", 2.5)
+                .attr("style", "transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);");
+
+            nodeSelection.append("text")
+                .text(d => d.id)
+                .attr("dy", 22)
+                .attr("text-anchor", "middle")
+                .attr("fill", "#64748b")
+                .attr("font-size", "9px");
+
+            simulation = d3.forceSimulation(topologyData.nodes)
+                .force("link", d3.forceLink(topologyData.links).id(d => d.id).distance(75))
+                .force("charge", d3.forceManyBody().strength(-180))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+
+            simulation.on("tick", () => {
+                linkSelection
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                nodeSelection.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+
+        function triggerInfiltrationFlash(sourceIp) {
+            let targetNodeId = "Gateway";
+            if (sourceIp.includes("10.0.0.12")) targetNodeId = "Server-Alpha";
+            else if (sourceIp.includes("192.168.1.50") || sourceIp.includes("192.168.1.105")) targetNodeId = "Server-Beta";
+            else if (sourceIp.includes("8.8.8.8")) targetNodeId = "External-DNS";
+
+            const circle = d3.select(`#node-${targetNodeId} circle`);
+            if (!circle.empty()) {
+                circle.attr("fill", "#ef4444").attr("r", 18);
+                setTimeout(() => {
+                    const baseColor = targetNodeId === "Gateway" ? "#06b6d4" : (targetNodeId.includes("Server") ? "#10b981" : "#64748b");
+                    circle.attr("fill", baseColor).attr("r", 12);
+                }, 1000);
+            }
+        }
+
+        function updateUIElements() {
+            document.getElementById('metric-total').innerText = totalCount;
+            document.getElementById('metric-dns').innerText = dnsCount;
+            document.getElementById('metric-http').innerText = httpCount;
+            document.getElementById('metric-raw').innerText = anomalyCount;
+        }
+
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            ['ALL', 'HTTP', 'DNS'].forEach(type => {
+                document.getElementById(`filter-${type}`).className = type === filterType ?
+                    "px-3 py-1 rounded font-bold cursor-pointer transition bg-cyan-500 text-slate-950" :
+                    "px-3 py-1 rounded font-bold cursor-pointer transition text-slate-400 hover:text-slate-200";
+            });
+
+            Array.from(document.getElementById('terminal').children).forEach(row => {
+                const proto = row.getAttribute('data-proto');
+                if (proto) row.style.display = (filterType === "ALL" || proto === filterType) ? "block" : "none";
+            });
+        }
+
+        function clearConsole() {
+            document.getElementById('terminal').innerHTML = `<div class="text-slate-600 italic">[Terminal buffer purged by system operator]</div>`;
+        }
+
+        function exportSessionLogToCSV() {
+            if (capturedSessionFramesArray.length === 0) return alert("Empty terminal context stream.");
+            let rows = ["Timestamp,Layer 4,Layer 7,Source IP,Destination IP,Payload Size"];
+            capturedSessionFramesArray.forEach(p => {
+                rows.push(`"${p.timestamp || ''}","${p.transport_layer?.protocol || 'TCP'}","${p.application_layer?.protocol_parsed || 'RAW'}","${p.network_layer?.source_ip || ''}","${p.network_layer?.destination_ip || ''}",${p.size || 0}`);
+            });
+            const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+            const downloadLink = document.createElement("a");
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.setAttribute("download", `netsentinel_export_${Date.now()}.csv`);
+            downloadLink.click();
+        }
+
+        function connectWebSocket() {
+            console.log(`Establishing socket handshakes on endpoint: ${WS_URL}`);
+            ws = new WebSocket(WS_URL);
+            
+            const statusText = document.getElementById('ws-status');
+            const pulseNode = document.getElementById('status-pulse');
+            const terminalNode = document.getElementById('terminal');
+            const pingDot = document.getElementById('stream-ping-indicator');
+
+            ws.onopen = () => {
+                statusText.innerText = "ONLINE";
+                statusText.className = "text-emerald-400 font-bold tracking-wide";
+                pulseNode.className = "w-3 h-3 rounded-full bg-emerald-500 animate-pulse";
+                pingDot.className = "w-2 h-2 bg-emerald-500 rounded-full animate-ping";
+                terminalNode.innerHTML = `<div class="text-emerald-500 font-bold">[+] Established high-density live streaming pipeline connection...</div>`;
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const packet = JSON.parse(event.data);
+                    capturedSessionFramesArray.push(packet);
+                    totalCount++;
+
+                    const l7 = packet.application_layer?.protocol_parsed || "RAW";
+                    if (l7 === "DNS") dnsCount++;
+                    else if (l7 === "HTTP") httpCount++;
+
+                    if (packet.is_anomaly || packet.ai_analyzed) {
+                        anomalyCount++;
+                        const alertBox = document.getElementById('alerts-log-box');
+                        if (anomalyCount === 1) alertBox.innerHTML = '';
+
+                        document.getElementById('alert-badge-count').innerText = `${anomalyCount} DETECTED`;
+
+                        const threatType = packet.anomaly_metadata?.threat_type || "UNENCRYPTED CREDENTIAL LEAK RISK";
+                        const threatDesc = packet.anomaly_metadata?.flagged_feature || `Cleartext ${l7} transmission trace intercepted from endpoint.`;
+
+                        alertBox.insertAdjacentHTML('afterbegin', `
+                            <div class="p-2.5 bg-red-950/20 border-l-2 border-red-500 rounded text-red-200 font-sans text-[11px] mb-1.5">
+                                <strong>[${threatType}]</strong> ${threatDesc}
+                            </div>
+                        `);
+
+                        triggerInfiltrationFlash(packet.network_layer?.source_ip || "");
+                    }
+
+                    updateUIElements();
+                    renderPacketRow(packet, l7);
+                } catch(err) { console.error("Pipeline syntax mapping exception:", err); }
+            };
+
+            ws.onclose = () => {
+                statusText.innerText = "OFFLINE (RECONNECTING)";
+                statusText.className = "text-rose-500 font-bold animate-pulse";
+                pulseNode.className = "w-3 h-3 rounded-full bg-rose-500 animate-pulse";
+                pingDot.className = "w-2 h-2 bg-slate-700 rounded-full";
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function renderPacketRow(pkt, l7_proto) {
+            const terminal = document.getElementById('terminal');
+            if (totalCount === 1) terminal.innerHTML = '';
+
+            const net = pkt.network_layer || {};
+            const trans = pkt.transport_layer || {};
+            const isAnomaly = pkt.is_anomaly ? "border-red-900/60 bg-red-950/10 text-red-200" : "border-slate-800/80 text-slate-300 bg-slate-900/10";
+            const timeString = pkt.timestamp ? pkt.timestamp.slice(11, 19) : new Date().toLocaleTimeString();
+
+            const rowTemplate = `
+                <div data-proto="${l7_proto}" class="p-3 border rounded-lg ${isAnomaly} font-mono w-full transition-all duration-150" style="display: ${ (currentFilter === "ALL" || l7_proto === currentFilter) ? 'block' : 'none' };">
+                    <div class="flex items-center justify-between text-[10px] text-slate-500 pb-1 mb-1 border-b border-slate-900/60">
+                        <span>SIZE: ${pkt.size || 64} Bytes | PROTO: ${trans.protocol || 'TCP'} (Port ${trans.source_port || '80'} ➔ ${trans.destination_port || '80'})</span>
+                        <span>${timeString}</span>
+                    </div>
+                    <div class="text-[12px]"><span class="text-cyan-400 font-bold">${net.source_ip || '0.0.0.0'}</span> ➔ <span class="text-indigo-400 font-bold">${net.destination_ip || '0.0.0.0'}</span></div>
+                    ${pkt.is_anomaly ? `<div class="text-[10px] text-red-400 mt-1 italic">└─ [AI ALERT]: Threat trace flagged within vector anomaly matrix.</div>` : ''}
+                </div>
+            `;
+            
+            terminal.insertAdjacentHTML('beforeend', rowTemplate);
+            if (terminal.children.length > 40) terminal.removeChild(terminal.children[0]);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        window.onload = () => {
+            initTopologyGraph();
+            connectWebSocket();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  netsentinel_db:
+    image: mongo:6.0
+    container_name: netsentinel_db
+    ports:
+      - "27017:27017"
+
+  netsentinel_ai:
+    image: netsentinel-ai_engine
+    container_name: netsentinel_ai
+    depends_on:
+      - netsentinel_db
+
+  netsentinel_backend:
+    image: netsentinel-backend
+    container_name: netsentinel_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - netsentinel_db
+
+  # 🚀 ADD THE FRONTEND SERVICE HERE
+  netsentinel_frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: netsentinel_frontend
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WDS_SOCKET_PORT=3001
+    depends_on:
+      - netsentinel_backend

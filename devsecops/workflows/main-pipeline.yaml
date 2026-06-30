@@ -1,0 +1,38 @@
+name: NetSentinel Core DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python Environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Validate Compose Architecture Configuration
+      run: |
+        docker compose config
+
+  container-compilation:
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code Repository
+      uses: actions/checkout@v4
+
+    - name: Build Backend Microservice Container
+      run: |
+        docker build -t netsentinel-backend:test -f devsecops/docker/backend.Dockerfile backend/
+
+    - name: Build AI Engine Microservice Container
+      run: |
+        docker build -t netsentinel-ai:test -f devsecops/docker/ai_engine.Dockerfile ai_engine/
