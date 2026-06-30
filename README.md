@@ -1,70 +1,76 @@
-NetSentinel v1.0.0
-An asynchronous, low-level real-time network security inspection tool engineered to sniff, dissect, and visualize network packets directly from Linux kernel ring buffers.
+# NetSentinel: AI-Powered Network Intrusion & Cyber Threat Visualizer
 
-NetSentinel bypasses high-level capture utilities (such as Scapy or PyShark) by opening raw AF_PACKET sockets directly. It utilizes custom-built binary bit-shifting parsers to extract network telemetry down to the application layer, broadcasting metrics instantly over WebSockets to a responsive web dashboard.
+NetSentinel is a real-time, high-density cyber threat monitoring workspace. Moving past static, rule-based firewall boundaries, it deploys unsupervised deep learning architectures to detect subtle micro-anomalies within massive, high-dimensional live network traffic data arrays.
 
-🏗️ System Architecture
-The application is modularly split into a high-performance processing backend and a real-time reactive streaming frontend:
+## 📡 Engineering Architecture Overview
 
-Plaintext
-netsentinel/
-├── backend/
-│   ├── app/
-│   │   ├── core/           # Database and application configuration
-│   │   ├── parsers/        # Custom binary L2/L3/L4/L7 bit-parsers
-│   │   │   └── protocols/  # Deep L7 App-Layer decoders (DNS, HTTP)
-│   │   ├── services/       # Sniffer background daemon loops
-│   │   └── main.py         # FastAPI WebSocket & REST API Engine
-│   └── data/               # Persistent SQLite storage volumes
-└── frontend/               # React / Tailwind CSS Dashboard 
-🔁 The Data Pipeline
-Kernel Ingestion: The background SnifferDaemon initiates an AF_PACKET raw socket, capturing raw Ethernet frames directly from the interface card.
+The system operates across three decoupled, high-performance layers:
 
-Modular Decoding: The packet bytes pass sequentially through the parsing chain:
+1. **The AI Core Layer:** Utilizes unsupervised machine learning configurations (Isolation Forests / Autoencoders) to isolate anomalies based on multivariant packet features, network payloads, and entropy profiles.
+2. **The Backend Streaming Engine:** Built with Python (FastAPI, Scapy, Asyncio), featuring multi-threaded ring buffers designed to capture, parse, and queue active transport layers without dropping frames. Persistent data attributes map directly to non-relational document sets in MongoDB.
+3. **The Full-Stack HUD Interface:** A zero-scroll, high-density React monitoring workspace featuring a live infrastructure topology map driven by D3.js force simulations that dynamically visually isolate target infiltration paths in real time.
 
-Layer 2 (Ethernet): Extracts MAC addresses and identifies the EtherType.
+---
 
-Layer 3 (IPv4): Extracts Source/Destination IPs and unmasks the underlying Protocol ID.
+## 🛠️ Technology Stack & Pipeline Components
 
-Layer 4 (TCP/UDP): Strips transport headers to isolate Source/Destination ports and TCP control flags.
+### Core Infrastructure
+* **Frontend:** React.js, Tailwind CSS, D3.js (Data-Driven Documents)
+* **Backend API:** Python 3.10+, FastAPI, WebSockets
+* **Traffic Ingestion:** Scapy (Raw Packet Socket Capture Daemon)
+* **Data Layer:** MongoDB (Dynamic Dynamic Fields Schema Tracking)
+* **DevSecOps:** Docker, Docker-Compose, Kubernetes (Network Isolation Profiles)
 
-Layer 7 (Application): Performs deep string-matching and label-unpacking to extract HTTP methods/status keys and DNS domain requests.
+### Protocol Parsing Coverage
+* **Layer 4 (Transport):** Complete State tracking for TCP Flags (SYN/ACK sequences), UDP Datagrams, and associated Port Bounds.
+* **Layer 7 (Application - HTTP):** Plaintext ASCII frame reconstructor, URL parsing path tracking, header field normalization, and metadata isolation hooks.
+* **Layer 7 (Application - DNS):** RFC 1035 Domain Variable Bit-Unpacker featuring recursive pointer-jumping verification guards and **Statistical Shannon Entropy Calculation** to neutralize DGA and data-exfiltration vectors.
 
-Async Distribution: Processed frames are concurrently pushed to an active WebSocket connection pool and safely batched off-thread into an SQLite database.
+---
 
-🛠️ Technical Highlights & Implementation Details
-Raw Sockets Over High-Level Tools: Engineered raw socket ingestion using standard Python socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003)), minimizing translation overhead.
+## 🚀 Quick Start Deployment Guide
 
-Binary Dissection: Utilizes Python's native struct library to decode networking headers byte-for-byte based on standard RFC network specifications.
+Ensure you have Docker and Docker-Compose installed on your local environment.
 
-Non-Blocking Asynchronous Concurrency: Leverages FastAPI's event loops (loop.sock_recv) to ingest packet sequences smoothly without bottlenecking HTTP REST routes or crashing streaming browser sessions.
-
-Persistent Telemetry: Includes built-in database indexing using thread-safe SQLite bindings to ensure packet histories are safely saved across sessions.
-
-Triage Analysis Control: Frontend includes live stream pausing and targeted application protocol filtering (HTTP, DNS, RAW) to help security analysts effectively isolate network noise.
-
-🚀 Getting Started (Deployment Manual)
-Prerequisites
-Operating System: Linux or Windows Subsystem for Linux (WSL2) with administrative elevations.
-
-Python Runtime: Python 3.12+
-
-Node Runtime: Node.js v18+
-
-1. Backend Service Launch
-Navigate to the backend module, create your virtual environment, install the framework dependencies, and boot the Uvicorn thread coordinator using administrative sudo privileges (required to bind raw packet network interfaces):
-
+### 1. Clone the Workspace Repository
+```bash
+git clone [https://github.com/YARAGANIDURGADHANUSH/NetSentinel.git](https://github.com/YARAGANIDURGADHANUSH/NetSentinel.git)
+cd NetSentinel
+2. Build and Launch the Orchestrated Multi-Container Stack
 Bash
-cd backend
-# Run from the backend directory using your workspace venv binary
-sudo app/venv/bin/python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-💡 Note: If the terminal reports [Errno 100] Network is down, force your virtual adapter card online in a parallel shell using sudo ip link set eth0 up.
+docker-compose up --build
+This single command spins up:
 
-2. Frontend Interface Launch
-Open a parallel shell, navigate to the frontend directory, install web modules, and spin up the user interface layer:
+The FastAPI streaming socket daemon backend on port 8000
 
-Bash
-cd frontend
-npm install
-npm start
-Open your browser and navigate to http://localhost:3000 to monitor live incoming traffic.
+The high-density React telemetry UI dashboard engine on port 3001
+
+An isolated local MongoDB persistence layer instance
+
+3. Access the Live Management Control HUD
+Open your browser and navigate to:
+
+http://localhost:3001
+Click the 🧪 RUN DIAGNOSTIC TEST FRAME in the upper menu layer to immediately inject mock telemetry vectors and monitor interactive system alerts.
+
+🔒 Security & Multi-Threading Integrity Guardrails
+Non-Blocking Ingestion: The ingestion engine leverages thread-safe shared-memory collections.deque structures locked at a rigid 10,000 capacity ceiling to eliminate application lag and kernel socket drop exceptions during high-frequency scans.
+
+Cyclic Pointer Defenses: The customized DNS label reader actively enforces an anti-loop boundary rule limit (max_jumps = 5) to cleanly strip malicious compressed exploit strings before they can lock system worker threads.
+
+
+---
+
+### 📤 How to update your README on GitHub
+
+Run this last set of commands in your project terminal to save your documentation:
+
+```bash
+# 1. Stage the new README file
+git add README.md
+
+# 2. Commit the change
+git commit -m "docs: finalize professional portfolio README with system quickstart blueprints"
+
+# 3. Push to your live repo
+git push origin main
